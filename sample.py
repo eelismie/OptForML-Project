@@ -1,38 +1,99 @@
 import torch
 import torch.nn as nn
 import torchvision
+import math as m 
 import numpy as np
 from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 import torchvision.datasets as dsets
 
+
+class model_lr(nn.Module):
+    """ Logistic regression w/out sigmoid output """
+
+    def __init__(self, input_dim=15, output_dim=1):
+            super(model_lr, self).__init__()
+            self.l = nn.Linear(input_dim, output_dim)
+
+    def forward(self,x):
+        out = self.l(x) 
+        return out
+
 class node():
-    def __init__(self, model, data_x, data_y, criteria):
-        self.model = model
+    """ node class to simulate training instance with separate dataset """
+
+    def __init__(self, data_x, data_y, **kwargs):
+        self.model = kwargs['model'](**kwargs['model_kwargs'])
         self.X = data_x
-        self.Y - data_y
-        self.criteria = criteria
+        self.Y = data_y
+        self.criteria = kwargs['criteria']()
 
     def parameters(self):
         return self.model.parameters()
 
     def forward_backward(self):
+
+        #TODO: make compatible with local minibatch updates as well
         out = self.model(self.X)
         l = self.criteria(out, self.Y)
         l.backward()
 
 class graph():
-    def __init__(self, W_matrix, data, model, loss, **kwargs):
-        self.W = W_matrix
-        self.nodes = [node(model(**kwargs), data[0], data[1], loss) for i in range(W_matrix.shape[0])] #initialize models
+    """ graph class to orchestrate training and combine weights from nodes """
+    def __init__(self, data, W_matrix, **kwargs):
 
-        #TODO: partition data among nodes instead of passing data[0] and data[1]
-        #TODO: optimization step and mixing step
-        #TODO: check if this initialization actually works
+        self.W_matrix = W_matrix
+        x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
+        self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs)  for i in range(self.W_matrix.shape[0])] 
+        
+        params = [i.parameters() for i in self.nodes]
+        self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
+
+    def partition(self, data, pieces=1): 
+        x = data[0]
+        y = data[1]
+
+        x_partitions = []
+        y_partitions = []
+
+        rows = x.shape[0]
+        size = m.floor(float(rows)/float(pieces))
+
+        for i in range(pieces):
+            x_partitions.append(x[i*size:(i + 1)*size,:]) #features 
+            y_partitions.append(y[i*size:(i + 1)*size]) #targets 
+
+        return x_partitions, y_partitions
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
-        #run optimization for 1000 total iterations with a defined number of mixing steps and local update steps
-        pass
+
+        for iter_ in range(iters):
+
+            #run training in each node 
+
+            for local_ in range(local_steps):
+                for node in self.nodes:
+                    node.forward_backward()
+
+                self.optim.step()
+                self.optim.zero_grad()
+
+            for mix_ in range(mixing_steps):
+                self.mix_weights()
+
+            self.print_loss()
+
+    def mix_weights(self):
+        #TODO : implement correct weight mixing 
+        #need to first store data on parameters, 
+        #then they need to be mixed correctly and placed in the right models 
+        pass 
+
+    def print_loss(self):
+        node = self.nodes[0]
+        out = node.model(node.X)
+        l = node.criteria(out, node.Y)
+        print(l)
 
 
 def ring_topo(num_elems):
@@ -49,55 +110,29 @@ def fc_topo(num_elems):
     return result
 
 
+model_kwargs = {"input_dim" : 784, "output_dim" : 2} 
+optimiser_kwargs = {"lr" : 0.001} #specify keyword args for model 
 
+graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
+    "optimiser_kwargs" : optimiser_kwargs,
+    "criteria" : nn.CrossEntropyLoss, #specify loss function for each node 
+    "model" : model_lr, #specify model class handle 
+    "optimiser" : torch.optim.SGD #specify global optimiser 
+    }
 
-
-
-samples= 1000
+#load data 
+samples= 2000
 tot_samples = samples*2
-features = 784
-classes = 2
-lips = 0.25/float(samples)
-lr = 1.0/lips
-
 dataset = torchvision.datasets.MNIST(root = "data",train=True,download=True )
-
 idx_0 = (dataset.train_labels==0)
 idx_1 = (dataset.train_labels==1)
 
-x = torch.cat([dataset.train_data[idx_0][:samples], dataset.train_data[idx_1][:samples]] ).reshape(tot_samples,-1)
-y = torch.cat([dataset.train_labels[idx_0][:samples], dataset.train_labels[idx_1][:samples]])
+perm = torch.randperm(samples)
+x = torch.cat([dataset.train_data[idx_0][:samples], dataset.train_data[idx_1][:samples]] ).reshape(tot_samples,-1).type(torch.FloatTensor)[perm,:]
+y = torch.cat([dataset.train_labels[idx_0][:samples], dataset.train_labels[idx_1][:samples]]).type(torch.LongTensor)[perm]
 
-#compute spectral norm
-eig = np.linalg.eigvals(x.numpy().T @ x.numpy()).max()
-lips = eig*lips
-print('eig :', eig)
-lr = 1. / lips
-print('lips :', lips, 'lr :', lr)
+data = (x, y)
+W_matrix = fc_topo(5) #define fully connected topology with 4  nodes 
 
-x = x.type(torch.FloatTensor)
-y = y.type(torch.LongTensor)
-model = nn.Linear(features, 2)
-criterion = nn.CrossEntropyLoss()
-optim = torch.optim.SGD(model.parameters(), lr=lr)
-
-losses = []
-iters = []
-for i in range(500):
-    out = model(x)
-    l = criterion(out, y)
-    l.backward()
-    optim.step()
-    optim.zero_grad()
-    losses.append(l.item())
-    iters.append(i)
-    if i % 100 == 0:
-        print('i :', i, 'loss :', l.item())
-
-# we should see a linear decay in the log-log plot
-plt.yscale('log')
-plt.xscale('log')
-plt.scatter(iters, losses)
-plt.show()
-
-
+graph_1 = graph(data, W_matrix, **graph_kwargs)
+graph_1.run(mixing_steps=1, local_steps=1, iters=100) #this should be equivalent to a single training step in the non_distributed case
