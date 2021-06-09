@@ -47,7 +47,7 @@ class graph():
     """ graph class to orchestrate training and combine weights from nodes """
     def __init__(self, data, W_matrix, **kwargs):
 
-        self.W_matrix = W_matrix
+        self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
         x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs)  for i in range(self.W_matrix.shape[0])]
 
@@ -98,19 +98,12 @@ class graph():
         #then they need to be mixed correctly and placed in the right models
         with torch.no_grad():
             params = [n.model.l.weight for n in self.nodes]
-            # number of nodes
-            N = len(params)
 
-            new_params = []
-            params_np = np.array(params)
-            for i in range(N):
-                p = (self.W_matrix[i, :] * params_np).sum(axis=0)
-                # print('i:',i)
-                # print('p shape:', p.shape)
-                new_params += [p]
-                # print('change: ', torch.norm(p - params[i]).item())
+            params_tensor = torch.stack(params)
+            new_params = torch.tensordot(self.W_matrix, params_tensor, dims=([1], [0]))
 
             for i, p in enumerate(new_params):
+                # print('change 1: ', torch.norm(p - params[i]).item())
                 params[i][:] = p
                 # print('change 2: ', torch.norm(p - params[i]).item())
 
@@ -165,4 +158,4 @@ data = (x, y)
 W_matrix = fc_topo(5) #define fully connected topology with 4  nodes
 
 graph_1 = graph(data, W_matrix, **graph_kwargs)
-graph_1.run(mixing_steps=1, local_steps=1, iters=2) #this should be equivalent to a single training step in the non_distributed case
+graph_1.run(mixing_steps=1, local_steps=1, iters=10) #this should be equivalent to a single training step in the non_distributed case
