@@ -51,8 +51,12 @@ class graph():
         x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs)  for i in range(self.W_matrix.shape[0])]
 
-        params = [i.parameters() for i in self.nodes]
+        params = self.parameters()
         self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
+
+    def parameters(self):
+        """Return all parameters from all nodes."""
+        return [n.parameters() for n in self.nodes]
 
     def partition(self, data, pieces=1):
         x = data[0]
@@ -92,7 +96,23 @@ class graph():
         #TODO : implement correct weight mixing
         #need to first store data on parameters,
         #then they need to be mixed correctly and placed in the right models
-        pass
+        with torch.no_grad():
+            params = [n.model.l.weight for n in self.nodes]
+            # number of nodes
+            N = len(params)
+
+            new_params = []
+            params_np = np.array(params)
+            for i in range(N):
+                p = (self.W_matrix[i, :] * params_np).sum(axis=0)
+                # print('i:',i)
+                # print('p shape:', p.shape)
+                new_params += [p]
+                # print('change: ', torch.norm(p - params[i]).item())
+
+            for i, p in enumerate(new_params):
+                params[i][:] = p
+                # print('change 2: ', torch.norm(p - params[i]).item())
 
     def print_loss(self):
         node = self.nodes[0]
@@ -145,4 +165,4 @@ data = (x, y)
 W_matrix = fc_topo(5) #define fully connected topology with 4  nodes
 
 graph_1 = graph(data, W_matrix, **graph_kwargs)
-graph_1.run(mixing_steps=1, local_steps=1, iters=100) #this should be equivalent to a single training step in the non_distributed case
+graph_1.run(mixing_steps=1, local_steps=1, iters=2) #this should be equivalent to a single training step in the non_distributed case
