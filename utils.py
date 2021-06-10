@@ -19,7 +19,10 @@ def preprocess_car_data(df):
 
     df.drop(["torque", "transmission", "seller_type", "fuel"], axis=1, inplace=True)
 
-    return df.iloc[:, 1:].astype(float)
+    df.iloc[:, 1:] = df.iloc[:, 1:].astype(float)
+    df["selling_price"] = df["selling_price"].divide(100)
+
+    return df
 
 
 def car_train_test(df, train_split=0.8):
@@ -29,6 +32,9 @@ def car_train_test(df, train_split=0.8):
     split_ind = int(train_split * len(df))
     df_train = df.iloc[:split_ind]
     df_test = df.iloc[split_ind:]
+
+    df_train.iloc[:, 1:] = df_train.iloc[:, 1:].astype(float)
+    df_test.iloc[:, 1:] = df_test.iloc[:, 1:].astype(float)
 
     return df_train, df_test
 

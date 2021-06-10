@@ -1,6 +1,8 @@
 import math as m
+from IPython import embed
 
 import torch
+import pandas as pd
 import torch.nn as nn
 import torchvision
 import numpy as np
@@ -10,7 +12,7 @@ import torchvision.datasets as dsets
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 
-from IPython import embed
+from utils import preprocess_car_data, car_train_test
 
 
 class model_lr(nn.Module):
@@ -47,12 +49,15 @@ class node():
             l.backward()
 
 class graph():
-    """ graph class to orchestrate training and combine weights from nodes """
-    def __init__(self, data, W_matrix, **kwargs):
+    """ Graph class to orchestrate training and combine weights from nodes """
+    def __init__(self, data, W_matrix, iid=True, **kwargs):
 
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
-        x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
-        self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs)  for i in range(self.W_matrix.shape[0])]
+        if iid:
+            x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
+        else:
+            x_partitions, y_partitions = self.non_iid_partition(data, pieces=self.W_matrix.shape[0])
+        self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
         params = self.parameters()
         self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
 
@@ -71,15 +76,39 @@ class graph():
         size = m.floor(float(rows)/float(pieces))
 
         for i in range(pieces):
-            x_partitions.append(x[i*size:(i + 1)*size,:]) #features
-            y_partitions.append(y[i*size:(i + 1)*size]) #targets
+            x_partitions.append(x[i * size:(i + 1) * size, :]) #features
+            y_partitions.append(y[i * size:(i + 1) * size]) #targets
 
         return x_partitions, y_partitions
 
 
-    def non_iid_partition(self):
-        raise NotImplementedError
+    def non_iid_partition(self, data, pieces=1):
+        """ Partitioning car data for nodes in a non-iid fashion """
+        test_data = data[1].drop("name", axis=1)
+        x_test = torch.from_numpy(np.array(test_data.drop("selling_price", axis=1))).float()
+        y_test = torch.from_numpy(np.array(test_data["selling_price"])).float()
 
+        self.test_data = (x_test, y_test)
+
+        train_data = data[0]
+        # sort by car brand so each node is assigned mostly one brand (or whatever else if we use another dataset)
+        train_data.sort_values("name", inplace=True)
+        x_train = torch.from_numpy(np.array(train_data.drop(["selling_price", "name"], axis=1))).float()
+        y_train = torch.from_numpy(np.array(train_data["selling_price"])).float()
+
+        mu, sd = x_train.mean(axis=0), x_train.std(axis=0)
+        x_train.sub_(mu).div_(sd)
+
+        x_partitions = []
+        y_partitions = []
+
+        size = m.floor(float(x_train.shape[0]) / float(pieces))
+
+        for i in range(pieces):
+            x_partitions.append(x_train[i * size: (i + 1) * size].view(-1, x_train.shape[1])) #features
+            y_partitions.append(y_train[i * size: (i + 1) * size].unsqueeze(-1)) #targets
+
+        return x_partitions, y_partitions
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
 
@@ -126,9 +155,9 @@ class graph():
 def ring_topo(num_elems):
     result = np.zeros((num_elems, num_elems))
     for i in range(num_elems):
-        result[i, (i + 1)%num_elems] = 1/3
-        result[i, (i + num_elems - 1)%num_elems] = 1/3
-        result[i,i] = 1/3
+        result[i, (i + 1) % num_elems] = 1 / 3
+        result[i, (i + num_elems - 1) % num_elems] = 1 / 3
+        result[i,i] = 1 / 3
     return result
 
 
@@ -176,17 +205,6 @@ def MH_weights(w):
 
 
 if __name__=="__main__":
-    model_kwargs = {"input_dim" : 784, "output_dim" : 2}
-    optimiser_kwargs = {"lr" : 0.001} #specify keyword args for model
-
-    graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
-        "optimiser_kwargs" : optimiser_kwargs,
-        "criteria" : nn.CrossEntropyLoss, #specify loss function for each node
-        "model" : model_lr, #specify model class handle
-        "optimiser" : torch.optim.SGD, #specify global optimiser
-        "batch_size" : 100 #specify batch size for each node
-        }
-
     #load data
     samples= 2000
     tot_samples = samples*2
@@ -195,14 +213,42 @@ if __name__=="__main__":
     idx_1 = (dataset.train_labels==1)
 
     perm = torch.randperm(samples)
-    x = torch.cat([dataset.train_data[idx_0][:samples], dataset.train_data[idx_1][:samples]]) \
-            .reshape(tot_samples, -1) \
-            .type(torch.FloatTensor)[perm,:]
-    y = torch.cat([dataset.train_labels[idx_0][:samples], dataset.train_labels[idx_1][:samples]]) \
-            .type(torch.LongTensor)[perm]
+    #x = torch.cat([dataset.train_data[idx_0][:samples], dataset.train_data[idx_1][:samples]]) \
+    #        .reshape(tot_samples, -1) \
+    #        .type(torch.FloatTensor)[perm,:]
+    #y = torch.cat([dataset.train_labels[idx_0][:samples], dataset.train_labels[idx_1][:samples]]) \
+    #        .type(torch.LongTensor)[perm]
+    #data = (x, y)
 
-    data = (x, y)
+    #model_kwargs = {"input_dim" : 784, "output_dim" : 2}
+
+    #graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
+    #    "optimiser_kwargs" : optimiser_kwargs,
+    #    "criteria" : nn.CrossEntropyLoss, #specify loss function for each node
+    #    "model" : model_lr, #specify model class handle
+    #    "optimiser" : torch.optim.SGD, #specify global optimiser
+    #    "batch_size" : 100 #specify batch size for each node
+    #    }
+
+    df_car = pd.read_csv("data/cars.csv")
+    df_car = preprocess_car_data(df_car)
+    df_train, df_test = car_train_test(df_car)
+
+    data = (df_train, df_test)
+
     W_matrix = fc_topo(5) #define fully connected topology with 4  nodes
 
-    graph_1 = graph(data, W_matrix, **graph_kwargs)
-    graph_1.run(mixing_steps=1, local_steps=1, iters=10) #this should be equivalent to a single training step in the non_distributed case
+    model_kwargs = {"input_dim" : 7, "output_dim": 1}
+    optimiser_kwargs = {"lr" : 0.01} #specify keyword args for model
+
+    graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
+        "optimiser_kwargs" : optimiser_kwargs,
+        "criteria" : nn.MSELoss, #specify loss function for each node
+        "model" : model_lr, #specify model class handle
+        "optimiser" : torch.optim.SGD, #specify global optimiser
+        "batch_size" : 100 #specify batch size for each node
+        }
+
+
+    graph_1 = graph(data, W_matrix, iid=False, **graph_kwargs)
+    graph_1.run(mixing_steps=1, local_steps=1, iters=10000) # this should be equivalent to a single training step in the non_distributed case
