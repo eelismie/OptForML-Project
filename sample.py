@@ -130,18 +130,20 @@ class graph():
             self.print_loss()
 
     def mix_weights(self):
-        #TODO : implement correct weight mixing
-        #need to first store data on parameters,
-        #then they need to be mixed correctly and placed in the right models
         with torch.no_grad():
-            params = [n.model.l.weight for n in self.nodes]
+            weights = [n.model.l.weight for n in self.nodes]
+            biases = [n.model.l.bias for n in self.nodes]
 
-            params_tensor = torch.stack(params)
-            new_params = torch.tensordot(self.W_matrix, params_tensor, dims=([1], [0]))
+            weights = torch.stack(weights)
+            biases = torch.stack(biases)
 
-            for i, p in enumerate(new_params):
+            weights = torch.tensordot(self.W_matrix, weights, dims=([1], [0]))
+            biases = torch.tensordot(self.W_matrix, biases, dims=([1], [0]))
+
+            for i, n in enumerate(self.nodes):
                 # print('change 1: ', torch.norm(p - params[i]).item())
-                params[i][:] = p
+                n.model.l.weight[:] = weights[i]
+                n.model.l.bias[:] = biases[i]
                 # print('change 2: ', torch.norm(p - params[i]).item())
 
     def print_loss(self):
