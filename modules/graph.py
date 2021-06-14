@@ -25,8 +25,6 @@ class node():
 
     def __init__(self, data_x, data_y, **kwargs):
         self.model = kwargs['model'](**kwargs['model_kwargs'])
-        # self.X = data_x
-        # self.Y = data_y
         self.trainset = TensorDataset(data_x, data_y)
         self.train_generator = DataLoader(self.trainset, batch_size=kwargs['batch_size'])
         self.criteria = kwargs['criteria']()
@@ -44,11 +42,15 @@ class graph():
     """ Graph class to orchestrate training and combine weights from nodes """
     def __init__(self, data, W_matrix, iid=True, **kwargs):
 
+        self.losses = []
+
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
+
         if iid:
             x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
         else:
             x_partitions, y_partitions = self.non_iid_partition(data, pieces=self.W_matrix.shape[0])
+
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
         params = self.parameters()
         self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
@@ -58,8 +60,13 @@ class graph():
         return [n.parameters() for n in self.nodes]
 
     def partition(self, data, pieces=1):
-        x = data[0]
-        y = data[1]
+
+        """ data = tuple of features and labels """
+
+        perm = torch.randperm(data[0].shape[0])
+
+        x = data[0][perm] #shuffle data
+        y = data[1][perm]
 
         x_partitions = []
         y_partitions = []
@@ -75,32 +82,20 @@ class graph():
 
 
     def non_iid_partition(self, data, pieces=1):
-        """ Partitioning car data for nodes in a non-iid fashion """
-        test_data = data[1].drop("name", axis=1)
-        x_test = torch.from_numpy(np.array(test_data.drop("selling_price", axis=1))).float()
-        y_test = torch.from_numpy(np.array(test_data["selling_price"])).float()
 
-        self.test_data = (x_test, y_test)
+        """ partittion data in non-iid way (assume preprocessed data) 
+        
+        x = torch tensor with features 
+        y = torch tensor with labels 
 
-        train_data = data[0]
-        # sort by car brand so each node is assigned mostly one brand (or whatever else if we use another dataset)
-        train_data.sort_values("name", inplace=True)
-        x_train = torch.from_numpy(np.array(train_data.drop(["selling_price", "name"], axis=1))).float()
-        y_train = torch.from_numpy(np.array(train_data["selling_price"])).float()
+        """
 
-        mu, sd = x_train.mean(axis=0), x_train.std(axis=0)
-        x_train.sub_(mu).div_(sd)
+        x = data[0]   #features 
+        y = data[1]   #classes  
 
-        x_partitions = []
-        y_partitions = []
-
-        size = m.floor(float(x_train.shape[0]) / float(pieces))
-
-        for i in range(pieces):
-            x_partitions.append(x_train[i * size: (i + 1) * size].view(-1, x_train.shape[1])) #features
-            y_partitions.append(y_train[i * size: (i + 1) * size].unsqueeze(-1)) #targets
-
-        return x_partitions, y_partitions
+        #TODO: non__iid_partitions 
+        #Maybe smarter just to study the effect that inexact averaging has on the stochastic convergence rates
+        pass
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
 
@@ -119,7 +114,8 @@ class graph():
                 #TODO: track number of communications with other nodes. would be interesting to look into total communication costs
                 self.mix_weights()
 
-            self.print_loss()
+            #self.print_loss()
+            self.write_train_loss()
 
     def mix_weights(self):
         with torch.no_grad():
@@ -144,3 +140,18 @@ class graph():
         out = node.model(X)
         l = node.criteria(out, y)
         print(l.item())
+
+    def write_train_loss(self):
+
+        """ total loss across nodes assuming equal size partitions of data """
+
+        loss = 0.0 
+        nodes = self.W_matrix.shape[0]
+
+        for i in self.nodes:
+            X, Y = i.trainset[:]
+            out = i.model(X)
+            l = i.criteria(out, Y)
+            loss += (1.0/nodes)*l.item()
+        
+        self.losses.append(loss)
