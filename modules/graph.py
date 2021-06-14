@@ -45,6 +45,7 @@ class graph():
         self.losses = []
 
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
+        self.data = data #store global dataset for stats
 
         if iid:
             x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
@@ -137,11 +138,12 @@ class graph():
     def print_loss(self):
         loss = 0.0
         nodes = self.W_matrix.shape[0]
+        full_X = self.data[0]
+        full_Y = self.data[1]
 
         for i in self.nodes:
-            X, Y = i.trainset[:]
-            out = i.model(X)
-            l = i.criteria(out, Y)
+            out = i.model(full_X)
+            l = i.criteria(out, full_Y)
             loss += (1.0/nodes)*l.item()
 
         print(loss)
