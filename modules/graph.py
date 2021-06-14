@@ -63,10 +63,8 @@ class graph():
 
         """ data = tuple of features and labels """
 
-        perm = torch.randperm(data[0].shape[0])
-
-        x = data[0][perm] #shuffle data
-        y = data[1][perm]
+        x = data[0] 
+        y = data[1]
 
         x_partitions = []
         y_partitions = []
@@ -112,6 +110,7 @@ class graph():
 
             for mix_ in range(mixing_steps):
                 #TODO: track number of communications with other nodes. would be interesting to look into total communication costs
+                #this can be computed using the weight matrix and the numbe of parameters per model
                 self.mix_weights()
 
             self.print_loss()
@@ -133,16 +132,19 @@ class graph():
                 new_params = torch.tensordot(self.W_matrix, new_params, dims=([1], [0]))
 
                 for i, p in enumerate(params):
-                    # print('change 1: ', torch.norm(p - new_params[i]).item())
                     p[:] = new_params[i]
-                    # print('change 2: ', torch.norm(p - new_params[i]).item())
 
     def print_loss(self):
-        node = self.nodes[0]
-        X, y = node.trainset[:]
-        out = node.model(X)
-        l = node.criteria(out, y)
-        print(l.item())
+        loss = 0.0
+        nodes = self.W_matrix.shape[0]
+
+        for i in self.nodes:
+            X, Y = i.trainset[:]
+            out = i.model(X)
+            l = i.criteria(out, Y)
+            loss += (1.0/nodes)*l.item()
+
+        print(loss)
 
     def write_train_loss(self):
 

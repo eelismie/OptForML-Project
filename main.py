@@ -5,6 +5,8 @@ import pandas as pd
 from torch import nn
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
+import numpy as np
+
 
 from modules.data import get_data
 from modules.options import parse_args
@@ -19,20 +21,21 @@ if __name__ == '__main__':
     if opt.topo == "fc":
         W_matrix = fc_topo(opt.nodes)
     elif opt.topo == "random":
-        W_matrix = random_topo(opt.nodes)
-    elif opt.topo == "mh":
-        # W_matrix = MH_weights(opt.nodes)
-        pass
+        W_matrix = MH_weights(random_topo(opt.nodes))
     elif opt.topo == "ring":
         W_matrix = ring_topo(opt.nodes)
     else:
         raise ValueError(f'Topology "{opt.topo}" is not valid.')
 
-    X, y = get_data(opt.num_samples)
-    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
+    x_train, y_train = get_data(opt.num_samples) #have sorted samples 
+
+    #x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
     # plt.scatter(X[:, 0], X[:, 1], c=y)
     # plt.show()
     # exit(0)
+
+    np.random.seed(opt.seed) #TODO: eed the same seed for dataset, need different seeds for runs 
+    torch.manual_seed(opt.seed)
 
     data = (x_train, y_train)
 
@@ -46,7 +49,6 @@ if __name__ == '__main__':
         "optimiser" : torch.optim.SGD, #specify global optimiser
         "batch_size" : opt.batch_size #specify batch size for each node
     }
-
 
     graph_1 = graph(data, W_matrix, iid=True, **graph_kwargs)
     graph_1.run(mixing_steps=opt.mixing_steps,

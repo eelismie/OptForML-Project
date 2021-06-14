@@ -36,7 +36,9 @@ def random_topo(num_elems): # might be interesting to consider other random grap
 
 
 def MH_weights(w):
-    """Metropolis Hastings weight assignment for distributed averaging."""
+    """Metropolis Hastings weight assignment for distributed averaging
+    note: accepts a W matrix with 1-0 assignments instead of final weights. """
+     
     degrees = w.sum(axis=1) - 1 # -1 to subtract itself as a neigbor
 
     result = np.zeros(w.shape)
