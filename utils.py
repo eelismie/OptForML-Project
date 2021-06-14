@@ -2,7 +2,8 @@
 import re
 import pandas as pd
 from IPython import embed
-
+import torch
+import numpy as np
 
 def preprocess_car_data(df):
     """Apply simple preprocessing and return cleaned data"""
@@ -28,6 +29,7 @@ def preprocess_car_data(df):
 def car_train_test(df, train_split=0.8):
     """Create train and test datasets"""
     df = df.sample(frac=1).reset_index(drop=True)
+    df.describe()
 
     split_ind = int(train_split * len(df))
     df_train = df.iloc[:split_ind]
@@ -37,4 +39,40 @@ def car_train_test(df, train_split=0.8):
     df_test.iloc[:, 1:] = df_test.iloc[:, 1:].astype(float)
 
     return df_train, df_test
+
+def car_to_torch(df_train, df_test):
+
+    """ preprocess car dataset - from df to torch """
+
+    data = (df_train, df_test)
+
+    test_data = data[1].drop("name", axis=1)
+    x_test = torch.from_numpy(np.array(test_data.drop("selling_price", axis=1))).float()
+    y_test = torch.from_numpy(np.array(test_data["selling_price"])).float()
+
+    x_test, y_test
+
+    train_data = data[0]
+    # sort by car brand so each node is assigned mostly one brand (or whatever else if we use another dataset)
+    train_data.sort_values("name", inplace=True)
+    x_train = torch.from_numpy(np.array(train_data.drop(["selling_price", "name"], axis=1))).float()
+    y_train = torch.from_numpy(np.array(train_data["selling_price"])).float()
+
+    mu, sd = x_train.mean(axis=0), x_train.std(axis=0)
+    x_train.sub_(mu).div_(sd)
+
+    return x_train, y_train, x_test, y_test
+
+
+def synthetic_data(samples, in_features):
+    """ sample points from a plane """
+
+    w = torch.empty((in_features, 1)).uniform_()
+    X = torch.empty((samples, in_features)).uniform_()
+
+    Y = torch.matmul(X, w) + 0.1*torch.empty((samples, 1)).normal_()
+    return X, Y, w
+
+
+
 

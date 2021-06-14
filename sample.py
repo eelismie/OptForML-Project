@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 import torchvision.datasets as dsets
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
+import networkx as nx #for graph visualization 
 
-from utils import preprocess_car_data, car_train_test
+from utils import preprocess_car_data, car_train_test, car_to_torch, synthetic_data
 
 
 class model_lr(nn.Module):
@@ -32,8 +33,6 @@ class node():
 
     def __init__(self, data_x, data_y, **kwargs):
         self.model = kwargs['model'](**kwargs['model_kwargs'])
-        # self.X = data_x
-        # self.Y = data_y
         self.trainset = TensorDataset(data_x, data_y)
         self.train_generator = DataLoader(self.trainset, batch_size=kwargs['batch_size'])
         self.criteria = kwargs['criteria']()
@@ -42,7 +41,6 @@ class node():
         return self.model.parameters()
 
     def forward_backward(self):
-        #TODO: make compatible with local minibatch updates as well
         for batch_x, batch_y in self.train_generator:
             out = self.model(batch_x)
             l = self.criteria(out, batch_y)
@@ -52,11 +50,15 @@ class graph():
     """ Graph class to orchestrate training and combine weights from nodes """
     def __init__(self, data, W_matrix, iid=True, **kwargs):
 
+        self.losses = []
+
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
+
         if iid:
             x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
         else:
             x_partitions, y_partitions = self.non_iid_partition(data, pieces=self.W_matrix.shape[0])
+
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
         params = self.parameters()
         self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
@@ -66,8 +68,13 @@ class graph():
         return [n.parameters() for n in self.nodes]
 
     def partition(self, data, pieces=1):
-        x = data[0]
-        y = data[1]
+
+        """ data = tuple of features and labels """
+
+        perm = torch.randperm(data[0].shape[0])
+
+        x = data[0][perm] #shuffle data
+        y = data[1][perm]
 
         x_partitions = []
         y_partitions = []
@@ -83,32 +90,20 @@ class graph():
 
 
     def non_iid_partition(self, data, pieces=1):
-        """ Partitioning car data for nodes in a non-iid fashion """
-        test_data = data[1].drop("name", axis=1)
-        x_test = torch.from_numpy(np.array(test_data.drop("selling_price", axis=1))).float()
-        y_test = torch.from_numpy(np.array(test_data["selling_price"])).float()
 
-        self.test_data = (x_test, y_test)
+        """ partittion data in non-iid way (assume preprocessed data) 
+        
+        x = torch tensor with features 
+        y = torch tensor with labels 
 
-        train_data = data[0]
-        # sort by car brand so each node is assigned mostly one brand (or whatever else if we use another dataset)
-        train_data.sort_values("name", inplace=True)
-        x_train = torch.from_numpy(np.array(train_data.drop(["selling_price", "name"], axis=1))).float()
-        y_train = torch.from_numpy(np.array(train_data["selling_price"])).float()
+        """
 
-        mu, sd = x_train.mean(axis=0), x_train.std(axis=0)
-        x_train.sub_(mu).div_(sd)
+        x = data[0]   #features 
+        y = data[1]   #classes  
 
-        x_partitions = []
-        y_partitions = []
-
-        size = m.floor(float(x_train.shape[0]) / float(pieces))
-
-        for i in range(pieces):
-            x_partitions.append(x_train[i * size: (i + 1) * size].view(-1, x_train.shape[1])) #features
-            y_partitions.append(y_train[i * size: (i + 1) * size].unsqueeze(-1)) #targets
-
-        return x_partitions, y_partitions
+        #TODO: non__iid_partitions 
+        #Maybe smarter just to study the effect that inexact averaging has on the stochastic convergence rates
+        pass
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
 
@@ -127,7 +122,8 @@ class graph():
                 #TODO: track number of communications with other nodes. would be interesting to look into total communication costs
                 self.mix_weights()
 
-            self.print_loss()
+            #self.print_loss()
+            self.write_train_loss()
 
     def mix_weights(self):
         with torch.no_grad():
@@ -153,6 +149,21 @@ class graph():
         l = node.criteria(out, y)
         print(l.item())
 
+    def write_train_loss(self):
+
+        """ total loss across nodes assuming equal size partitions of data """
+
+        loss = 0.0 
+        nodes = self.W_matrix.shape[0]
+
+        for i in self.nodes:
+            X, Y = i.trainset[:]
+            out = i.model(X)
+            l = i.criteria(out, Y)
+            loss += (1.0/nodes)*l.item()
+        
+        self.losses.append(loss)
+    
 
 def ring_topo(num_elems):
     result = np.zeros((num_elems, num_elems))
@@ -162,13 +173,27 @@ def ring_topo(num_elems):
         result[i,i] = 1 / 3
     return result
 
+def draw_graph(w_matrix):
+    """ use networkx to visualize the graph topology """
+
+    G = nx.Graph()
+    copy = np.copy(w_matrix)
+    for i in range(w_matrix.shape[0]):
+        copy[i,i] = 0
+        row = copy[i,:]
+        nonzero = np.nonzero(row) 
+        for j in nonzero[0]:
+            if (j > i):
+                G.add_edge(i + 1, j + 1)
+        
+    nx.draw(G)
+    plt.show()
 
 def fc_topo(num_elems):
     result = np.ones((num_elems, num_elems))
     result = result/num_elems
     return result
-
-
+        
 def random_topo(num_elems): # might be interesting to consider other random graph generating techniques
     """Create random symmetric topology"""
     result = np.random.randint(0, 2, size=(num_elems, num_elems))
@@ -207,50 +232,44 @@ def MH_weights(w):
 
 
 if __name__=="__main__":
-    #load data
-    samples= 2000
-    tot_samples = samples*2
-    dataset = torchvision.datasets.MNIST(root = "data",train=True,download=True )
-    idx_0 = (dataset.train_labels==0)
-    idx_1 = (dataset.train_labels==1)
 
-    perm = torch.randperm(samples)
-    #x = torch.cat([dataset.train_data[idx_0][:samples], dataset.train_data[idx_1][:samples]]) \
-    #        .reshape(tot_samples, -1) \
-    #        .type(torch.FloatTensor)[perm,:]
-    #y = torch.cat([dataset.train_labels[idx_0][:samples], dataset.train_labels[idx_1][:samples]]) \
-    #        .type(torch.LongTensor)[perm]
-    #data = (x, y)
-
-    #model_kwargs = {"input_dim" : 784, "output_dim" : 2}
-
-    #graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
-    #    "optimiser_kwargs" : optimiser_kwargs,
-    #    "criteria" : nn.CrossEntropyLoss, #specify loss function for each node
-    #    "model" : model_lr, #specify model class handle
-    #    "optimiser" : torch.optim.SGD, #specify global optimiser
-    #    "batch_size" : 100 #specify batch size for each node
-    #    }
+    np.random.seed(3)
 
     df_car = pd.read_csv("data/cars.csv")
     df_car = preprocess_car_data(df_car)
     df_train, df_test = car_train_test(df_car)
+    #x_train, y_train, x_test, y_test = car_to_torch(df_train, df_test)
+    x_train, y_train, w = synthetic_data(1000, 7)
+    data = (x_train, y_train)
 
-    data = (df_train, df_test)
-
-    W_matrix = fc_topo(5) #define fully connected topology with 4  nodes
+    W_matrix_1 = fc_topo(10) 
+    W_matrix_2 = ring_topo(10)
 
     model_kwargs = {"input_dim" : 7, "output_dim": 1}
-    optimiser_kwargs = {"lr" : 0.01} #specify keyword args for model
+    optimiser_kwargs = {"lr" : 0.001} #specify keyword args for model
 
     graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
         "optimiser_kwargs" : optimiser_kwargs,
         "criteria" : nn.MSELoss, #specify loss function for each node
         "model" : model_lr, #specify model class handle
         "optimiser" : torch.optim.SGD, #specify global optimiser
-        "batch_size" : 100 #specify batch size for each node
+        "batch_size" : 10 #specify batch size for each node
         }
 
+    draw_graph(fc_topo(10))
 
-    graph_1 = graph(data, W_matrix, iid=False, **graph_kwargs)
-    graph_1.run(mixing_steps=1, local_steps=1, iters=10000) # this should be equivalent to a single training step in the non_distributed case
+    # graph_1 = graph(data, W_matrix_1, iid=True, **graph_kwargs)
+    # graph_2 = graph(data, W_matrix_2, iid=True, **graph_kwargs)
+    # graph_3 = graph(data, W_matrix_2, iid=True, **graph_kwargs)
+
+    # graph_1.run(mixing_steps=1, local_steps=1, iters=20) 
+    # graph_2.run(mixing_steps=1, local_steps=1, iters=20)
+    # graph_3.run(mixing_steps=4, local_steps=1, iters=20)
+
+    # t = [i for i in range(20)]
+    # plt.plot(t, graph_1.losses, label="5")
+    # plt.plot(t, graph_2.losses, label="10")
+    # plt.plot(t, graph_3.losses, label="10-more-mixing")
+    
+    # plt.legend()
+    # plt.show() 
