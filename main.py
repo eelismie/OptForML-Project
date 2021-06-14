@@ -7,7 +7,7 @@ from torch import nn
 from modules.options import parse_args
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
-from utils import preprocess_car_data, car_train_test
+from utils import preprocess_car_data, car_train_test, car_to_torch
 
 
 if __name__ == '__main__':
@@ -30,8 +30,9 @@ if __name__ == '__main__':
     df_car = pd.read_csv("data/cars.csv")
     df_car = preprocess_car_data(df_car)
     df_train, df_test = car_train_test(df_car)
+    x_train, y_train, x_test, y_test = car_to_torch(df_train, df_test)
 
-    data = (df_train, df_test)
+    data = (x_train, y_train)
 
     model_kwargs = {"input_dim" : 7, "output_dim": 1}
     optimiser_kwargs = {"lr" : opt.lr} #specify keyword args for model
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     }
 
 
-    graph_1 = graph(data, W_matrix, iid=False, **graph_kwargs)
+    graph_1 = graph(data, W_matrix, iid=True, **graph_kwargs)
     graph_1.run(mixing_steps=opt.mixing_steps,
                 local_steps=opt.local_steps,
                 iters=opt.epochs)
