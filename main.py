@@ -27,14 +27,14 @@ if __name__ == '__main__':
     else:
         raise ValueError(f'Topology "{opt.topo}" is not valid.')
 
-    x_train, y_train = get_data(opt.num_samples) #have sorted samples 
+    x_train, y_train = get_data(opt.num_samples) #have sorted samples
 
     #x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
-    # plt.scatter(X[:, 0], X[:, 1], c=y)
+    # plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train)
     # plt.show()
     # exit(0)
 
-    np.random.seed(opt.seed) #TODO: eed the same seed for dataset, need different seeds for runs 
+    np.random.seed(opt.seed) #TODO: eed the same seed for dataset, need different seeds for runs
     torch.manual_seed(opt.seed)
 
     data = (x_train, y_train)

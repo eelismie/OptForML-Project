@@ -15,9 +15,9 @@ def parse_args():
 
     # topology
     parser.add_argument("--nodes", type=int, default=10,
-                        help="No. of topology nodes (default 5)")
+                        help="No. of topology nodes (default 10)")
     parser.add_argument("--topo", type=str, default="fc",
-                        help="Topology. One of: fc, random, mh, ring (default fc)")
+                        help="Topology. One of: fc, random, ring (default fc)")
 
     # training setups
     parser.add_argument("--lr", type=float, default=0.01,
@@ -25,13 +25,13 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=20,
                         help="Batch size (default 20)")
     parser.add_argument("--epochs", type=int, default=5,
-                        help="No. of train epochs (default 25)")
+                        help="No. of train epochs (default 5)")
     parser.add_argument("--local_steps", type=int, default=1,
                         help="No. of train steps per node per epoch (default 1)")
     parser.add_argument("--mixing_steps", type=int, default=1,
                         help="No. of params mixing steps per epoch (default 1)")
 
-    #rng seend 
+    #rng seend
     parser.add_argument("--seed", type=int, default=0)
 
     # how many times to repeat the train and test process
