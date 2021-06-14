@@ -123,20 +123,23 @@ class graph():
 
     def mix_weights(self):
         with torch.no_grad():
-            weights = [n.model.l.weight for n in self.nodes]
-            biases = [n.model.l.bias for n in self.nodes]
+            N = len([_ for _ in self.nodes[0].model.parameters()])
+            for i in range(N):
+                params = []
+                for n in self.nodes:
+                    gen = n.model.parameters()
+                    p = next(gen)
+                    for _ in range(i):
+                        p = next(gen)
+                    params += [p]
 
-            weights = torch.stack(weights)
-            biases = torch.stack(biases)
+                new_params = torch.stack(params)
+                new_params = torch.tensordot(self.W_matrix, new_params, dims=([1], [0]))
 
-            weights = torch.tensordot(self.W_matrix, weights, dims=([1], [0]))
-            biases = torch.tensordot(self.W_matrix, biases, dims=([1], [0]))
-
-            for i, n in enumerate(self.nodes):
-                # print('change 1: ', torch.norm(n.model.l.bias - biases[i]).item())
-                n.model.l.weight[:] = weights[i]
-                n.model.l.bias[:] = biases[i]
-                # print('change 1: ', torch.norm(n.model.l.bias - biases[i]).item())
+                for i, p in enumerate(params):
+                    # print('change 1: ', torch.norm(p - new_params[i]).item())
+                    p[:] = new_params[i]
+                    # print('change 2: ', torch.norm(p - new_params[i]).item())
 
     def print_loss(self):
         node = self.nodes[0]
