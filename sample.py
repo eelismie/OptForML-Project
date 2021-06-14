@@ -137,10 +137,10 @@ class graph():
             biases = torch.tensordot(self.W_matrix, biases, dims=([1], [0]))
 
             for i, n in enumerate(self.nodes):
-                # print('change 1: ', torch.norm(p - params[i]).item())
+                # print('change 1: ', torch.norm(n.model.l.bias - biases[i]).item())
                 n.model.l.weight[:] = weights[i]
                 n.model.l.bias[:] = biases[i]
-                # print('change 2: ', torch.norm(p - params[i]).item())
+                # print('change 1: ', torch.norm(n.model.l.bias - biases[i]).item())
 
     def print_loss(self):
         node = self.nodes[0]
