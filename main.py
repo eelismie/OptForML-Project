@@ -3,11 +3,13 @@
 import torch
 import pandas as pd
 from torch import nn
+from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
 
+from modules.data import get_data
 from modules.options import parse_args
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
-from utils import preprocess_car_data, car_train_test, car_to_torch
 
 
 if __name__ == '__main__':
@@ -26,15 +28,15 @@ if __name__ == '__main__':
     else:
         raise ValueError(f'Topology "{opt.topo}" is not valid.')
 
-
-    df_car = pd.read_csv("data/cars.csv")
-    df_car = preprocess_car_data(df_car)
-    df_train, df_test = car_train_test(df_car)
-    x_train, y_train, x_test, y_test = car_to_torch(df_train, df_test)
+    X, y = get_data(opt.num_samples)
+    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
+    # plt.scatter(X[:, 0], X[:, 1], c=y)
+    # plt.show()
+    # exit(0)
 
     data = (x_train, y_train)
 
-    model_kwargs = {"input_dim" : 7, "output_dim": 1}
+    model_kwargs = {"input_dim" : 2, "output_dim": 1}
     optimiser_kwargs = {"lr" : opt.lr} #specify keyword args for model
 
     graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs

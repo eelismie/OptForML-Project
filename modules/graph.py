@@ -83,17 +83,17 @@ class graph():
 
     def non_iid_partition(self, data, pieces=1):
 
-        """ partittion data in non-iid way (assume preprocessed data) 
-        
-        x = torch tensor with features 
-        y = torch tensor with labels 
+        """ partittion data in non-iid way (assume preprocessed data)
+
+        x = torch tensor with features
+        y = torch tensor with labels
 
         """
 
-        x = data[0]   #features 
-        y = data[1]   #classes  
+        x = data[0]   #features
+        y = data[1]   #classes
 
-        #TODO: non__iid_partitions 
+        #TODO: non__iid_partitions
         #Maybe smarter just to study the effect that inexact averaging has on the stochastic convergence rates
         pass
 
@@ -114,7 +114,7 @@ class graph():
                 #TODO: track number of communications with other nodes. would be interesting to look into total communication costs
                 self.mix_weights()
 
-            #self.print_loss()
+            self.print_loss()
             self.write_train_loss()
 
     def mix_weights(self):
@@ -148,7 +148,7 @@ class graph():
 
         """ total loss across nodes assuming equal size partitions of data """
 
-        loss = 0.0 
+        loss = 0.0
         nodes = self.W_matrix.shape[0]
 
         for i in self.nodes:
@@ -156,5 +156,5 @@ class graph():
             out = i.model(X)
             l = i.criteria(out, Y)
             loss += (1.0/nodes)*l.item()
-        
+
         self.losses.append(loss)

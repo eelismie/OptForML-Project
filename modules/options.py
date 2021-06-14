@@ -11,7 +11,8 @@ def parse_args():
                         # help="select one of the model types")
 
     # dataset
-    # parser.add_argument("--nb_points", type=int, default=1000)
+    parser.add_argument("--num_samples", type=int, default=2000,
+                        help="No. of points in the dataset (default 2000)")
 
     # topology
     parser.add_argument("--nodes", type=int, default=5,
