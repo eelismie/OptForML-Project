@@ -9,7 +9,7 @@ def get_data(num_samples):
 
     W = np.array(
         [[1, 0],
-         [1, 1]])
+         [0, 1]])
 
     X_1 = np.random.normal(size=(num_samples,))
     X_2 = np.absolute(np.random.normal(size=(num_samples,)))
