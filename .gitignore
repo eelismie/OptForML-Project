@@ -1,4 +1,4 @@
-data/MNIST/
+data/
 venv/
 .vim/
 __pycache__/
