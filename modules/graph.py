@@ -64,7 +64,7 @@ class graph():
 
         """ data = tuple of features and labels """
 
-        x = data[0] 
+        x = data[0]
         y = data[1]
 
         x_partitions = []
@@ -146,7 +146,7 @@ class graph():
             l = i.criteria(out, full_Y)
             loss += (1.0/nodes)*l.item()
 
-        print(loss)
+        print('train loss :', loss)
 
     def write_train_loss(self):
 

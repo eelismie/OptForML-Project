@@ -31,13 +31,11 @@ def parse_args():
     parser.add_argument("--mixing_steps", type=int, default=1,
                         help="No. of params mixing steps per epoch (default 1)")
 
-    #rng seend
+    # rng seend
     parser.add_argument("--seed", type=int, default=0)
 
-    # how many times to repeat the train and test process
-    # parser.add_argument("--nb_rounds", type=int, default=1)
-
     # save output in csv fomat
-    # parser.add_argument("--csv", type=str, default=None)
+    parser.add_argument("--csv", type=str, default=None,
+                        help="Save to CSV output (default None)")
 
     return parser.parse_args()
