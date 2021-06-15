@@ -136,7 +136,6 @@ class graph():
                 self.mix_weights()
 
             self.print_loss()
-            self.write_train_loss()
 
     def mix_weights(self):
         with torch.no_grad():
@@ -167,20 +166,6 @@ class graph():
             l = i.criteria(out, full_Y)
             loss += (1.0/nodes)*l.item()
 
-        print(loss)
-
-    def write_train_loss(self):
-
-        """ total loss across nodes assuming equal size partitions of data """
-
-        loss = 0.0
-        nodes = self.W_matrix.shape[0]
-
-        for i in self.nodes:
-            X, Y = i.trainset[:]
-            out = i.model(X)
-            l = i.criteria(out, Y)
-            loss += (1.0/nodes)*l.item()
-
+        print('train loss :', loss)
         self.losses.append(loss)
 

@@ -3,13 +3,13 @@
 import torch
 import pandas as pd
 from torch import nn
-from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 import numpy as np
 
 
 from modules.data import get_data
 from modules.options import parse_args
+from modules.utils import open_csv
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
 
@@ -17,6 +17,10 @@ from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
 if __name__ == '__main__':
     # retrieve command line args
     opt = parse_args()
+
+    # optional csv output
+    if opt.csv:
+        opt.csv = open_csv(opt.csv, header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss')
 
     if opt.topo == "fc":
         W_matrix = fc_topo(opt.nodes)
@@ -27,9 +31,8 @@ if __name__ == '__main__':
     else:
         raise ValueError(f'Topology "{opt.topo}" is not valid.')
 
-    x_train, y_train = get_data(opt.num_samples) #have sorted samples
+    x_train, y_train = get_data(opt.num_samples)
 
-    #x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
     # plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train)
     # plt.show()
     # exit(0)
@@ -53,4 +56,12 @@ if __name__ == '__main__':
     graph_1 = graph(data, W_matrix, iid=True, **graph_kwargs)
     graph_1.run(mixing_steps=opt.mixing_steps,
                 local_steps=opt.local_steps,
-                iters=opt.epochs)
+                iters=opt.iters)
+
+    # optional csv output
+    if opt.csv:
+        # write all losses
+        for l in graph_1.losses:
+            opt.csv.write(f'{opt.topo},{opt.nodes},{opt.lr},{opt.batch_size},'
+                          f'{opt.mixing_steps},{opt.local_steps},{l}\n')
+        opt.csv.close()

@@ -9,7 +9,7 @@ def get_data(num_samples):
 
     W = np.array(
         [[1, 0],
-         [1, 1]])
+         [0, 1]])
 
     X_1 = np.random.normal(size=(num_samples,))
     X_2 = np.absolute(np.random.normal(size=(num_samples,)))
@@ -17,7 +17,7 @@ def get_data(num_samples):
     X_old = np.c_[X_1, X_2][ang]
     X = X_old @ W
 
-    y = np.exp(-(X_old**2).sum(axis=1))
+    y = np.exp(-(X_old**2).sum(axis=1)) - 1/4
     y = y[:, np.newaxis]
 
     # to torch tensor
