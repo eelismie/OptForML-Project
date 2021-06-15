@@ -56,7 +56,7 @@ if __name__ == '__main__':
     graph_1 = graph(data, W_matrix, iid=True, **graph_kwargs)
     graph_1.run(mixing_steps=opt.mixing_steps,
                 local_steps=opt.local_steps,
-                iters=opt.epochs)
+                iters=opt.iters)
 
     # optional csv output
     if opt.csv:

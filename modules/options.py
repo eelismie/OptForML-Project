@@ -24,8 +24,8 @@ def parse_args():
                         help="Learning rate (default 0.01)")
     parser.add_argument("--batch_size", type=int, default=20,
                         help="Batch size (default 20)")
-    parser.add_argument("--epochs", type=int, default=5,
-                        help="No. of train epochs (default 5)")
+    parser.add_argument("--iters", type=int, default=5,
+                        help="No. of train iterations (default 5)")
     parser.add_argument("--local_steps", type=int, default=1,
                         help="No. of train steps per node per epoch (default 1)")
     parser.add_argument("--mixing_steps", type=int, default=1,
