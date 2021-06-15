@@ -20,6 +20,27 @@ class model_lr(nn.Module):
         return out
 
 
+class model_nn(nn.Module):
+    "Linear NN model"
+
+    def __init__(self, n_layers=3, layer_size=5, hl_dim=10, in_dim=28 * 28, out_dim=10):
+        super(model_nn, self).__init__()
+
+        modules = []
+
+        modules.extend([nn.Linear(in_dim, hl_dim), nn.ReLU()])
+        for _ in range(n_layers):
+            modules.extend([nn.Linear(hl_dim, hl_dim), nn.ReLU()])
+        modules.append(nn.Linear(hl_dim, out_dim))
+
+        self.network = nn.Sequential(*modules)
+
+
+    def forward(self, x):
+        out = self.network(x)
+
+        return out
+
 class node():
     """ node class to simulate training instance with separate dataset """
 
@@ -64,7 +85,7 @@ class graph():
 
         """ data = tuple of features and labels """
 
-        x = data[0] 
+        x = data[0]
         y = data[1]
 
         x_partitions = []
@@ -162,3 +183,4 @@ class graph():
             loss += (1.0/nodes)*l.item()
 
         self.losses.append(loss)
+

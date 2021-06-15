@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import networkx as nx
 
+
 def preprocess_car_data(df):
     """Apply simple preprocessing and return cleaned data"""
     df.dropna(inplace=True)
@@ -41,6 +42,7 @@ def car_train_test(df, train_split=0.8):
 
     return df_train, df_test
 
+
 def car_to_torch(df_train, df_test):
 
     """ preprocess car dataset - from df to torch """
@@ -74,6 +76,7 @@ def synthetic_data(samples, in_features):
     Y = torch.matmul(X, w) + 0.1*torch.empty((samples, 1)).normal_()
     return X, Y, w
 
+
 def draw_graph(w_matrix):
     """ use networkx to visualize the graph topology """
 
@@ -82,13 +85,10 @@ def draw_graph(w_matrix):
     for i in range(w_matrix.shape[0]):
         copy[i,i] = 0
         row = copy[i,:]
-        nonzero = np.nonzero(row) 
+        nonzero = np.nonzero(row)
         for j in nonzero[0]:
             G.add_edge(i + 1, j + 1)
-        
+
     nx.draw(G)
     plt.show()
-
-
-
 
