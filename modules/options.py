@@ -12,6 +12,8 @@ def parse_args():
     # dataset
     parser.add_argument("--num_samples", type=int, default=2000,
                         help="No. of points in the dataset (default 2000)")
+    parser.add_argument("--iid", type=str, default="true",
+                        help="Whether data is iid (default True)")
 
     # topology
     parser.add_argument("--nodes", type=int, default=10,
