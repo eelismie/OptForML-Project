@@ -52,6 +52,11 @@ class node():
         self.train_generator = DataLoader(self.trainset, batch_size=kwargs['batch_size'])
         self.criteria = kwargs['criteria']()
 
+        N = data_x.shape[0]
+        x_ = np.c_[data_x, np.ones((N, 1))]
+        self.lipschitz = 2 / N * (np.linalg.svd(x_, compute_uv=False)[0] ** 2)
+
+
     def parameters(self):
         return self.model.parameters()
 
@@ -107,6 +112,7 @@ class graph():
 
         return x_partitions, y_partitions
 
+
     def process_non_iid(self):
         """Sort data by angle (only works with 2-D data)."""
         x = self.data[0]  # features
@@ -153,7 +159,7 @@ class graph():
                 self.mix_weights()
 
             self.print_loss()
-        
+
     def mix_weights(self):
         with torch.no_grad():
             N = len([_ for _ in self.nodes[0].model.parameters()])

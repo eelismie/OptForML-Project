@@ -12,7 +12,7 @@ from modules.options import parse_args
 from modules.utils import open_csv
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
-    
+
 
 if __name__ == '__main__':
     # retrieve command line args
