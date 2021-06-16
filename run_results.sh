@@ -5,8 +5,8 @@
 # no. of samples
 N=2000
 runs=5
-nodes="1 10 100"
-topos="fc ring"
+nodes="1 5 10 50 100"
+topos="fc ring random"
 lr=0.281095
 iters=100
 iid="false"
