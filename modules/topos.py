@@ -2,6 +2,7 @@
 import numpy as np
 import networkx as nx
 
+
 def ring_topo(num_elems):
     """Create weight matrix for ring topology."""
     if num_elems == 1:
