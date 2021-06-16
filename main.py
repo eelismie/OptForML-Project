@@ -21,6 +21,11 @@ if __name__ == '__main__':
     np.random.seed(opt.seed)
     torch.manual_seed(opt.seed)
 
+    if opt.iid.lower() == "false":
+        opt.iid = False
+    else:
+        opt.iid = True
+
     # optional csv output
     if opt.csv:
         opt.csv = open_csv(opt.csv, header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss')
@@ -53,7 +58,7 @@ if __name__ == '__main__':
         "batch_size" : opt.batch_size #specify batch size for each node
     }
 
-    graph_1 = graph(data, W_matrix, iid=True, **graph_kwargs)
+    graph_1 = graph(data, W_matrix, iid=opt.iid, **graph_kwargs)
     graph_1.run(mixing_steps=opt.mixing_steps,
                 local_steps=opt.local_steps,
                 iters=opt.iters)

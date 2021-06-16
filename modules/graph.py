@@ -19,6 +19,28 @@ class model_lr(nn.Module):
         out = self.l(x)
         return out
 
+
+class model_nn(nn.Module):
+    "Linear NN model"
+
+    def __init__(self, n_layers=3, layer_size=5, hl_dim=10, in_dim=28 * 28, out_dim=10):
+        super(model_nn, self).__init__()
+
+        modules = []
+
+        modules.extend([nn.Linear(in_dim, hl_dim), nn.ReLU()])
+        for _ in range(n_layers):
+            modules.extend([nn.Linear(hl_dim, hl_dim), nn.ReLU()])
+        modules.append(nn.Linear(hl_dim, out_dim))
+
+        self.network = nn.Sequential(*modules)
+
+
+    def forward(self, x):
+        out = self.network(x)
+
+        return out
+
 class node():
     """ node class to simulate training instance with separate dataset """
 
@@ -40,16 +62,17 @@ class node():
 class graph():
     """ Graph class to orchestrate training and combine weights from nodes """
     def __init__(self, data, W_matrix, iid=True, **kwargs):
-
         self.losses = []
-
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
-        self.data = data #store global dataset for stats
+        # store global dataset for stats
+        # tuple of features and targets
+        self.data = data
 
-        if iid:
-            x_partitions, y_partitions = self.partition(data, pieces=self.W_matrix.shape[0])
-        else:
-            x_partitions, y_partitions = self.non_iid_partition(data, pieces=self.W_matrix.shape[0])
+        # non-iid data
+        if not iid:
+            self.process_non_iid()
+
+        x_partitions, y_partitions = self.partition(pieces=self.W_matrix.shape[0])
 
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
         params = self.parameters()
@@ -59,12 +82,10 @@ class graph():
         """Return all parameters from all nodes."""
         return [n.parameters() for n in self.nodes]
 
-    def partition(self, data, pieces=1):
-
-        """ data = tuple of features and labels """
-
-        x = data[0]
-        y = data[1]
+    def partition(self, pieces=1):
+        """Partition preserving iid, assuming data is iid in the indices."""
+        x = self.data[0]  # features
+        y = self.data[1]  # targets
 
         x_partitions = []
         y_partitions = []
@@ -73,33 +94,29 @@ class graph():
         size = m.floor(float(rows)/float(pieces))
 
         for i in range(pieces):
-            x_partitions.append(x[i * size:(i + 1) * size, :]) #features
-            y_partitions.append(y[i * size:(i + 1) * size]) #targets
+            x_partitions.append(x[i * size:(i + 1) * size, :])  # features
+            y_partitions.append(y[i * size:(i + 1) * size])  # targets
 
         return x_partitions, y_partitions
 
-    def non_iid_partition(self, data, pieces=1):
+    def process_non_iid(self):
+        """Sort data by angle (only works with 2-D data)."""
+        x = self.data[0]  # features
+        y = self.data[1]  # targets
 
-        """ partittion data in non-iid way (assume preprocessed data)
-
-        x = torch tensor with features
-        y = torch tensor with labels
-
-        """
-
-        x = data[0]   #features
-        y = data[1]   #classes
+        # only 2-D samples
+        if x.shape[1] != 2:
+            return
 
         #TODO: non__iid_partitions
         #Maybe smarter just to study the effect that inexact averaging has on the stochastic convergence rates
-        pass
+        # this sorts the samples by their angle
+        ang = np.argsort(np.arctan2(x[:, 1], x[:, 0]))
+        self.data = (x[ang], y[ang])
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
-
         for iter_ in range(iters):
-
             #run training in each node
-
             for local_ in range(local_steps):
                 for node in self.nodes:
                     node.forward_backward()
@@ -143,8 +160,8 @@ class graph():
             l = i.criteria(out, full_Y)
             loss += (1.0/nodes)*l.item()
 
-        print('train loss :', loss - 0.05307472)
-        self.losses.append(loss - 0.05307472)
+        print('train loss :', loss)
+        self.losses.append(loss)
 
     def compute_communication(self, mixing_steps):
         nod = self.nodes[0]

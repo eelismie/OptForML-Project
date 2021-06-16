@@ -5,9 +5,9 @@
 # no. of samples
 N=2000
 runs=5
-nodes="1 100"
+nodes="1 10 100"
 topos="fc ring"
-lr=0.01 #0.16180558096154635
+lr=0.001 #0.16180558096154635
 iters=100
 
 # activate environment
