@@ -1,6 +1,6 @@
 """Contains method to generate different topology matrices."""
 import numpy as np
-
+import networkx as nx
 
 def ring_topo(num_elems):
     """Create weight matrix for ring topology."""
@@ -34,12 +34,19 @@ def random_topo(num_elems): # might be interesting to consider other random grap
     result[result.nonzero()] = 1.0
 
     # ensure connectedness
-    while not all([ele >= 2 for ele in result.sum(axis=1)]) == True:
+    while not num_connected_components(result) == 1:
         result = random_topo(num_elems)
 
     np.testing.assert_array_equal(result, result.T)
 
     return result.astype(float)
+
+
+def num_connected_components(arr):
+    arr = nx.from_numpy_array(arr)
+    nb_components = nx.algorithms.components.connected_components(arr)
+
+    return int(len(list(nb_components)))
 
 
 def MH_weights(w):
