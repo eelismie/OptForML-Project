@@ -9,7 +9,7 @@ import numpy as np
 
 from modules.data import get_data
 from modules.options import parse_args
-from modules.utils import open_csv
+from modules.utils import open_csv, get_bandwidth
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
 
@@ -28,7 +28,8 @@ if __name__ == '__main__':
 
     # optional csv output
     if opt.csv:
-        opt.csv = open_csv(opt.csv, header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss')
+        opt.csv = open_csv(opt.csv,
+                header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss,comms')
 
     if opt.topo == "fc":
         W_matrix = fc_topo(opt.nodes)
@@ -65,7 +66,12 @@ if __name__ == '__main__':
 
     # optional csv output
     if opt.csv:
+        topo_BW = get_bandwidth(W_matrix,
+                                graph_1.nodes[0].model.parameters(),
+                                opt.mixing_steps)
+        c = 0
         for l in graph_1.losses:
+            c += topo_BW
             opt.csv.write(f'{opt.topo},{opt.nodes},{opt.lr},{opt.batch_size},'
-                          f'{opt.mixing_steps},{opt.local_steps},{l}\n')
+                          f'{opt.mixing_steps},{opt.local_steps},{l},{c}\n')
         opt.csv.close()

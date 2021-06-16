@@ -7,8 +7,9 @@ N=2000
 runs=5
 nodes="1 10 100"
 topos="fc ring"
-lr=0.001 #0.16180558096154635
+lr=0.281095
 iters=100
+iid="false"
 
 # activate environment
 . ./venv/bin/activate
@@ -23,7 +24,7 @@ for i in $(seq $runs); do
             csv="notebooks/out.$i.csv"
             python3 main.py --topo $topo --seed $i --num_samples $N \
                 --batch_size $N --lr $lr --nodes $n --iters $iters \
-                --csv "$csv"
+                --iid "$iid" --csv "$csv"
         done
     done
 done

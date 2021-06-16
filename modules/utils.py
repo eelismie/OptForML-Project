@@ -1,4 +1,5 @@
 """Method utilities."""
+import numpy as np
 from pathlib import Path
 
 
@@ -14,3 +15,13 @@ def open_csv(file_name, header):
         # header
         csv.write(header + '\n')
     return csv
+
+
+def get_bandwidth(W, params, mix_steps):
+    """Return bytes per iteration for the given distributed system parameters."""
+    # count connections. Subtract nodes since we don't count themselves
+    nb_conn = (np.abs(W) > 1e-6).sum() - W.shape[0]
+    # we use float32 == 4 bytes
+    B = 4
+    mem = B * sum([p.numel() for p in params])
+    return nb_conn * mem * mix_steps
