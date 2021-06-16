@@ -89,6 +89,12 @@ def draw_graph(w_matrix):
     nx.draw(G)
     plt.show()
 
+def glob_optimum_lr(X, y):
+    w = np.linalg.inv(X.T@X)@X.T@y
+    diff = X@w - y
+    optimum = (diff*diff).mean()
+    return optimum
+
 
 
 

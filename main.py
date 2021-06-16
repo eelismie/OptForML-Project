@@ -12,11 +12,14 @@ from modules.options import parse_args
 from modules.utils import open_csv
 from modules.graph import graph, model_lr
 from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
-
+    
 
 if __name__ == '__main__':
     # retrieve command line args
     opt = parse_args()
+
+    np.random.seed(opt.seed)
+    torch.manual_seed(opt.seed)
 
     # optional csv output
     if opt.csv:
@@ -36,9 +39,6 @@ if __name__ == '__main__':
     # plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train)
     # plt.show()
     # exit(0)
-
-    np.random.seed(opt.seed) #TODO: eed the same seed for dataset, need different seeds for runs
-    torch.manual_seed(opt.seed)
 
     data = (x_train, y_train)
 
@@ -60,7 +60,6 @@ if __name__ == '__main__':
 
     # optional csv output
     if opt.csv:
-        # write all losses
         for l in graph_1.losses:
             opt.csv.write(f'{opt.topo},{opt.nodes},{opt.lr},{opt.batch_size},'
                           f'{opt.mixing_steps},{opt.local_steps},{l}\n')

@@ -9,7 +9,7 @@ from torch.utils.data.dataset import TensorDataset
 
 
 class model_lr(nn.Module):
-    """ Logistic regression w/out sigmoid output """
+    """ Linear model """
 
     def __init__(self, input_dim=15, output_dim=1):
         super(model_lr, self).__init__()
@@ -18,7 +18,6 @@ class model_lr(nn.Module):
     def forward(self,x):
         out = self.l(x)
         return out
-
 
 class node():
     """ node class to simulate training instance with separate dataset """
@@ -79,7 +78,6 @@ class graph():
 
         return x_partitions, y_partitions
 
-
     def non_iid_partition(self, data, pieces=1):
 
         """ partittion data in non-iid way (assume preprocessed data)
@@ -115,7 +113,7 @@ class graph():
                 self.mix_weights()
 
             self.print_loss()
-
+        
     def mix_weights(self):
         with torch.no_grad():
             N = len([_ for _ in self.nodes[0].model.parameters()])
@@ -145,5 +143,19 @@ class graph():
             l = i.criteria(out, full_Y)
             loss += (1.0/nodes)*l.item()
 
-        print('train loss :', loss)
-        self.losses.append(loss)
+        print('train loss :', loss - 0.05307472)
+        self.losses.append(loss - 0.05307472)
+
+    def compute_communication(self, mixing_steps):
+        nod = self.nodes[0]
+        pp = 0
+        for p in nod.model.parameters():
+            nn=1
+            for s in list(p.size()):
+                nn = nn*s
+            pp += nn
+
+        connections = np.count_nonzero(self.W_matrix)
+
+        comms = connections*pp*mixing_steps
+        return comms
