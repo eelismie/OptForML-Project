@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # optional csv output
     if opt.csv:
         opt.csv = open_csv(opt.csv,
-                header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss,comms')
+            header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss,comms')
 
     if opt.topo == "fc":
         W_matrix = fc_topo(opt.nodes)
@@ -48,18 +48,30 @@ if __name__ == '__main__':
 
     data = (x_train, y_train)
 
-    model_kwargs = {"input_dim" : 2, "output_dim": 1}
-    optimiser_kwargs = {"lr" : opt.lr} #specify keyword args for model
+    model_kwargs = {"input_dim" : x_train.shape[1], "output_dim": y_train.shape[1]}
 
     graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
-        "optimiser_kwargs" : optimiser_kwargs,
         "criteria" : nn.MSELoss, #specify loss function for each node
         "model" : model_lr, #specify model class handle
-        "optimiser" : torch.optim.SGD, #specify global optimiser
         "batch_size" : opt.batch_size #specify batch size for each node
     }
 
     graph_1 = graph(data, W_matrix, iid=opt.iid, **graph_kwargs)
+
+    # calculate a fair learning-rate from the topology, data and number of nodes
+    Lh = max([n.lipschitz for n in graph_1.nodes])
+    lambda_n = np.linalg.eig(W_matrix)[0].min()
+    # sometimes numerical innaccuracies make lambda_n complex
+    if type(lambda_n) == complex:
+        lambda_n = lambda_n.real
+    lr = min((1 + lambda_n) / Lh, 1 / Lh)
+
+    print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
+
+    # define global optimizer
+    graph_1.set_optimizer(torch.optim.SGD, lr=lr)
+
+    # train distributed system
     graph_1.run(mixing_steps=opt.mixing_steps,
                 local_steps=opt.local_steps,
                 iters=opt.iters)
