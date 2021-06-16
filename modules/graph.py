@@ -4,6 +4,7 @@ import math as m
 import torch
 import numpy as np
 from torch import nn
+from IPython import embed
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 
@@ -41,6 +42,7 @@ class model_nn(nn.Module):
 
         return out
 
+
 class node():
     """ node class to simulate training instance with separate dataset """
 
@@ -59,9 +61,10 @@ class node():
             l = self.criteria(out, batch_y)
             l.backward()
 
+
 class graph():
     """ Graph class to orchestrate training and combine weights from nodes """
-    def __init__(self, data, W_matrix, iid=True, **kwargs):
+    def __init__(self, data, W_matrix, iid=True, toy_example=False, **kwargs):
         self.losses = []
         self.W_matrix = torch.from_numpy(W_matrix).to(torch.float32)
         # store global dataset for stats
@@ -72,15 +75,20 @@ class graph():
         if not iid:
             self.process_non_iid()
 
-        x_partitions, y_partitions = self.partition(pieces=self.W_matrix.shape[0])
+        if toy_example:
+            x_partitions, y_partitions = self.toy_partition(data, pieces=self.W_matrix.shape[0])
+        else:
+            x_partitions, y_partitions = self.partition(pieces=self.W_matrix.shape[0])
 
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
         params = self.parameters()
         self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
 
+
     def parameters(self):
         """Return all parameters from all nodes."""
         return [n.parameters() for n in self.nodes]
+
 
     def partition(self, pieces=1):
         """Partition preserving iid, assuming data is iid in the indices."""
@@ -113,6 +121,21 @@ class graph():
         # this sorts the samples by their angle
         ang = np.argsort(np.arctan2(x[:, 1], x[:, 0]))
         self.data = (x[ang], y[ang])
+
+
+    def toy_partition(self, data, pieces):
+        x = data[0]
+        y = data[1]
+
+        x_partitions = []
+        y_partitions = []
+
+        for i in range(pieces):
+            x_partitions.append(x[i])
+            y_partitions.append(y[i])
+
+        return x_partitions, y_partitions
+
 
     def run(self, mixing_steps=1, local_steps=1, iters=100):
         for iter_ in range(iters):
