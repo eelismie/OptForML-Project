@@ -5,9 +5,9 @@
 # no. of samples
 N=2000
 runs=1
-nodes="5 50 100"
-topos="ring random smallworld"
-lrs=0.01 #"none 0.281095"
+nodes="50"
+topos="ring random fc smallworld"
+lrs="none" #"none 0.281095"
 iters=2000
 iid="false"
 

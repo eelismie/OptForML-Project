@@ -67,7 +67,7 @@ if __name__ == '__main__':
         # sometimes numerical innaccuracies make lambda_n complex
         if np.iscomplexobj(lambda_n):
             lambda_n = lambda_n.real
-        lr = min((1 + lambda_n) / Lh, 1 / Lh) / 2
+        lr = min((1 + lambda_n) / Lh, 1 / Lh)
 
         print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
     else:
