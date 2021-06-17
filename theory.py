@@ -18,8 +18,8 @@ def toy_data(n_workers):
 
 
 if __name__ == "__main__":
-    np.random.seed(4)
-    torch.manual_seed(4)
+    np.random.seed(6)
+    torch.manual_seed(6)
 
     n_workers = 100
     A, x, b = toy_data(n_workers)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print("edge proportion vs fc net: ", W.sum() / n_workers ** 2)
 
     model_kwargs = {"input_dim" : 3, "output_dim": 1}
-    optimiser_kwargs = {"lr" : 0.35}
+    optimiser_kwargs = {"lr" : 0.4}
 
     # cutoff learning rate is 0.5
     graph_kwargs = {"model_kwargs": model_kwargs, #pass model kwargs
@@ -44,11 +44,19 @@ if __name__ == "__main__":
     graph = graph((A, b), W_mh, iid=True, toy_example=True, **graph_kwargs)
 
 
+    _Lh = np.array([x.lipschitz for x in graph.nodes])
+    _Lh_weighted = W_mh @ _Lh
+    _Lh = np.min(_Lh_weighted)
+    lr_adj = 1 / _Lh
+
+
     Lh = max([x.lipschitz for x in graph.nodes])
     lambda_n = np.linalg.eig(W_mh)[0].min()
     lr = min((1 + lambda_n) / Lh, 1 / Lh)
 
     print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
+
+    embed()
 
     graph.run(mixing_steps = 1,
               local_steps = 1,

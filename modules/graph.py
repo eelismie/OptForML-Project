@@ -160,6 +160,7 @@ class graph():
 
             self.print_loss()
 
+
     def mix_weights(self):
         with torch.no_grad():
             N = len([_ for _ in self.nodes[0].model.parameters()])
@@ -177,6 +178,7 @@ class graph():
 
                 for i, p in enumerate(params):
                     p[:] = new_params[i]
+
 
     def print_loss(self):
         loss = 0.0
