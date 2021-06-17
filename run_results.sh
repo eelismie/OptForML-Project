@@ -12,7 +12,7 @@ iters=2000
 iid="false"
 
 # activate environment
-#. ./venv/bin/activate
+. ./venv/bin/activate
 
 # remove all out CSV files
 rm notebooks/out*.csv
