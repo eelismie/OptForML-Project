@@ -43,6 +43,13 @@ def random_topo(num_elems):
     return result.astype(float)
 
 
+def small_world_topo(num_elems, k=30, p=0.7):
+    """Create small world topology graph"""
+    result = nx.connected_watts_strogatz_graph(num_elems, k=int(0.4 * num_elems), p=p)
+    result = nx.convert_matrix.to_numpy_array(result)
+
+    return result
+
 def num_connected_components(arr):
     arr = nx.from_numpy_array(arr)
     nb_components = nx.algorithms.components.connected_components(arr)

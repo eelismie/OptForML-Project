@@ -11,7 +11,7 @@ from modules.data import get_data
 from modules.options import parse_args
 from modules.utils import open_csv, get_bandwidth
 from modules.graph import graph, model_lr
-from modules.topos import ring_topo, fc_topo, random_topo, MH_weights
+from modules.topos import ring_topo, fc_topo, random_topo, small_world_topo, MH_weights
 
 
 if __name__ == '__main__':
@@ -37,6 +37,8 @@ if __name__ == '__main__':
         W_matrix = MH_weights(random_topo(opt.nodes))
     elif opt.topo == "ring":
         W_matrix = ring_topo(opt.nodes)
+    elif opt.topo == "smallworld":
+        W_matrix = MH_weights(small_world_topo(opt.nodes))
     else:
         raise ValueError(f'Topology "{opt.topo}" is not valid.')
 
