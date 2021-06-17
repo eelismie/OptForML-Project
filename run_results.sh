@@ -4,7 +4,7 @@
 
 # no. of samples
 N=2000
-runs=10
+runs=1
 nodes="5 50 100"
 topos="ring random smallworld"
 lrs=0.01 #"none 0.281095"
@@ -12,7 +12,7 @@ iters=2000
 iid="false"
 
 # activate environment
-#. ./venv/bin/activate
+. ./venv/bin/activate
 
 # remove all out CSV files
 rm notebooks/out*.csv
