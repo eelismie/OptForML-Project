@@ -59,14 +59,17 @@ if __name__ == '__main__':
     graph_1 = graph(data, W_matrix, iid=opt.iid, **graph_kwargs)
 
     # calculate a fair learning-rate from the topology, data and number of nodes
-    Lh = max([n.lipschitz for n in graph_1.nodes])
-    lambda_n = np.linalg.eig(W_matrix)[0].min()
-    # sometimes numerical innaccuracies make lambda_n complex
-    if type(lambda_n) == complex:
-        lambda_n = lambda_n.real
-    lr = min((1 + lambda_n) / Lh, 1 / Lh)
+    if opt.lr is None or opt.lr.lower() == "none":
+        Lh = max([n.lipschitz for n in graph_1.nodes])
+        lambda_n = np.linalg.eig(W_matrix)[0].min()
+        # sometimes numerical innaccuracies make lambda_n complex
+        if np.iscomplexobj(lambda_n):
+            lambda_n = lambda_n.real
+        lr = min((1 + lambda_n) / Lh, 1 / Lh) / 2
 
-    print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
+        print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
+    else:
+        lr = float(opt.lr)
 
     # define global optimizer
     graph_1.set_optimizer(torch.optim.SGD, lr=lr)
@@ -84,6 +87,6 @@ if __name__ == '__main__':
         c = 0
         for l in graph_1.losses:
             c += topo_BW
-            opt.csv.write(f'{opt.topo},{opt.nodes},{opt.lr},{opt.batch_size},'
+            opt.csv.write(f'{opt.topo},{opt.nodes},{lr},{opt.batch_size},'
                           f'{opt.mixing_steps},{opt.local_steps},{l},{c}\n')
         opt.csv.close()

@@ -25,3 +25,11 @@ def get_bandwidth(W, params, mix_steps):
     B = 4
     mem = B * sum([p.numel() for p in params])
     return nb_conn * mem * mix_steps
+
+def get_beta(W):
+    """Return theoretical variable which relates the neighborhood of convergence for a topology."""
+    eigs = np.linalg.eig(W)[0]
+    # ascending order
+    eigs.sort()
+    beta = max(np.abs(eigs[-2]), np.abs(eigs[0]))
+    return beta
