@@ -48,6 +48,8 @@ def small_world_topo(num_elems, k=30, p=0.7):
     result = nx.connected_watts_strogatz_graph(num_elems, k=int(0.4 * num_elems), p=p)
     result = nx.convert_matrix.to_numpy_array(result)
 
+    np.fill_diagonal(result, 1)
+
     return result
 
 def num_connected_components(arr):
@@ -67,9 +69,10 @@ def MH_weights(w):
         for j in range(w.shape[1]):
             if i != j and w[i, j] != 0:
                 result[i, j] = 1.0 / max(degrees[i], degrees[j])
-        result[i, i] = 1.0 - result[i].sum()
+        result[i, i] = 1 - result[i].sum()
 
     # check for symmetry and stochasticity
+    assert np.min(result) >= 0
     np.testing.assert_allclose(result.sum(axis=0), np.ones(w.shape[0]))
     np.testing.assert_allclose(result.sum(axis=1), np.ones(w.shape[0]))
     np.testing.assert_array_equal(result, result.T)
