@@ -52,6 +52,11 @@ class node():
         self.train_generator = DataLoader(self.trainset, batch_size=kwargs['batch_size'])
         self.criteria = kwargs['criteria']()
 
+        N = data_x.shape[0]
+        x_ = np.c_[data_x, np.ones((N, 1))]
+        self.lipschitz = 2 / N * (np.linalg.svd(x_, compute_uv=False)[0] ** 2)
+
+
     def parameters(self):
         return self.model.parameters()
 
@@ -81,8 +86,12 @@ class graph():
             x_partitions, y_partitions = self.partition(pieces=self.W_matrix.shape[0])
 
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
+
+    def set_optimizer(self, opt, **kwargs):
+        """Set the optimizer for all nodes."""
         params = self.parameters()
-        self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
+        self.optim = opt([{'params' : p} for p in params], **kwargs)
+        # kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
 
 
     def parameters(self):
@@ -106,6 +115,7 @@ class graph():
             y_partitions.append(y[i * size:(i + 1) * size])  # targets
 
         return x_partitions, y_partitions
+
 
     def process_non_iid(self):
         """Sort data by angle (only works with 2-D data)."""
@@ -153,7 +163,7 @@ class graph():
                 self.mix_weights()
 
             self.print_loss()
-        
+
     def mix_weights(self):
         with torch.no_grad():
             N = len([_ for _ in self.nodes[0].model.parameters()])

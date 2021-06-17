@@ -25,7 +25,7 @@ def fc_topo(num_elems):
     return result
 
 
-def random_topo(num_elems): # might be interesting to consider other random graph generating techniques
+def random_topo(num_elems):
     """Create weight matrix for random symmetric topology."""
     result = np.random.randint(0, 2, size=(num_elems, num_elems))
     np.fill_diagonal(result, 1.0)

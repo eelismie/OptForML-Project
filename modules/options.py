@@ -22,8 +22,8 @@ def parse_args():
                         help="Topology. One of: fc, random, ring (default fc)")
 
     # training setups
-    parser.add_argument("--lr", type=float, default=0.01,
-                        help="Learning rate (default 0.01)")
+    parser.add_argument("--lr", type=str, default=None,
+                        help="Learning rate (default None; calculated)")
     parser.add_argument("--batch_size", type=int, default=20,
                         help="Batch size (default 20)")
     parser.add_argument("--iters", type=int, default=5,
