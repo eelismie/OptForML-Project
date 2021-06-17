@@ -4,7 +4,7 @@
 
 # no. of samples
 N=2000
-runs=1
+runs=10
 nodes="5 50 100"
 topos="ring random"
 lrs=0.01 #"none 0.281095"
