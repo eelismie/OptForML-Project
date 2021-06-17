@@ -55,6 +55,7 @@ class node():
         N = data_x.shape[0]
         x_ = np.c_[data_x, np.ones((N, 1))]
         self.lipschitz = 2 / N * (np.linalg.svd(x_, compute_uv=False)[0] ** 2)
+        self.mu = 2 / N * (np.linalg.svd(x_, compute_uv=False)[-1] ** 2)
 
 
     def parameters(self):

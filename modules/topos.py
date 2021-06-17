@@ -45,7 +45,7 @@ def random_topo(num_elems):
 
 def small_world_topo(num_elems, p=0.7):
     """Create small world topology graph"""
-    result = nx.connected_watts_strogatz_graph(num_elems, k=int(0.5 * num_elems), p=p)
+    result = nx.connected_watts_strogatz_graph(num_elems, k=int(0.50 * num_elems), p=p)
     result = nx.convert_matrix.to_numpy_array(result)
 
     np.fill_diagonal(result, 1)

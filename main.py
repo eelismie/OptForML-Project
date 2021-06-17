@@ -63,11 +63,13 @@ if __name__ == '__main__':
     # calculate a fair learning-rate from the topology, data and number of nodes
     if opt.lr is None or opt.lr.lower() == "none":
         Lh = max([n.lipschitz for n in graph_1.nodes])
+        Lf = np.mean([n.lipschitz for n in graph_1.nodes])
+        mu_f = np.mean([n.mu for n in graph_1.nodes])
         lambda_n = np.linalg.eig(W_matrix)[0].min()
         # sometimes numerical innaccuracies make lambda_n complex
         if np.iscomplexobj(lambda_n):
             lambda_n = lambda_n.real
-        lr = min((1 + lambda_n) / Lh, 1 / Lh)
+        lr = min((1 + lambda_n) / Lh, 1 / (Lf + mu_f))
 
         print("lr: ", lr, "lambda_n: ", lambda_n, "Lh: ", Lh)
     else:
