@@ -86,8 +86,12 @@ class graph():
             x_partitions, y_partitions = self.partition(pieces=self.W_matrix.shape[0])
 
         self.nodes = [node(x_partitions[i], y_partitions[i], **kwargs) for i in range(self.W_matrix.shape[0])]
+
+    def set_optimizer(self, opt, **kwargs):
+        """Set the optimizer for all nodes."""
         params = self.parameters()
-        self.optim = kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
+        self.optim = opt([{'params' : p} for p in params], **kwargs)
+        # kwargs['optimiser']([{'params' : p} for p in params], **kwargs['optimiser_kwargs'])
 
 
     def parameters(self):

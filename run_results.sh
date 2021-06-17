@@ -4,11 +4,12 @@
 
 # no. of samples
 N=2000
-runs=5
-nodes="1 10 100"
-topos="fc ring"
-lr=0.001 #0.16180558096154635
-iters=100
+runs=1
+nodes="5 50 100"
+topos="ring random"
+lrs=0.01 #"none 0.281095"
+iters=2000
+iid="false"
 
 # activate environment
 . ./venv/bin/activate
@@ -18,12 +19,14 @@ rm notebooks/out*.csv
 
 for i in $(seq $runs); do
     for n in $nodes; do
-        for topo in $topos; do
-            printf "i : %3d\tnodes : %4d\ttopo : %8s\n" "$i" "$n" "$topo"
-            csv="notebooks/out.$i.csv"
-            python3 main.py --topo $topo --seed $i --num_samples $N \
-                --batch_size $N --lr $lr --nodes $n --iters $iters \
-                --csv "$csv"
+        for lr in $lrs; do
+            for topo in $topos; do
+                printf "i : %3d\tnodes : %4d\tlr : %8s\ttopo : %8s\n" "$i" "$n" "$lr" "$topo"
+                csv="notebooks/out.$i.csv"
+                python3 main.py --topo $topo --seed $i --num_samples $N \
+                    --batch_size $N --lr $lr --nodes $n --iters $iters \
+                    --iid "$iid" --csv "$csv"
+            done
         done
     done
 done
