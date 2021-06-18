@@ -14,7 +14,7 @@ def ring_topo(num_elems):
     for i in range(num_elems):
         result[i, (i + 1) % num_elems] = 1 / 3
         result[i, (i + num_elems - 1) % num_elems] = 1 / 3
-        result[i,i] = 1 / 3
+        result[i, i] = 1 / 3
     return result
 
 
@@ -44,7 +44,7 @@ def random_topo(num_elems):
 
 
 def small_world_topo(num_elems, p=0.7):
-    """Create small world topology graph"""
+    """Create small world topology graph."""
     result = nx.connected_watts_strogatz_graph(num_elems, k=int(0.50 * num_elems), p=p)
     result = nx.convert_matrix.to_numpy_array(result)
 
@@ -60,9 +60,11 @@ def num_connected_components(arr):
 
 
 def MH_weights(w):
-    """Metropolis Hastings weight assignment for distributed averaging
-    note: accepts a W matrix with 1-0 assignments instead of final weights. """
-    degrees = w.sum(axis=1) - 1 # -1 to subtract itself as a neigbor
+    """Metropolis Hastings weight assignment for distributed averaging.
+
+    note: accepts a W matrix with 1-0 assignments instead of final weights.
+    """
+    degrees = w.sum(axis=1) - 1  # -1 to subtract itself as a neigbor
 
     result = np.zeros(w.shape)
     for i in range(w.shape[0]):
