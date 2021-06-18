@@ -1,5 +1,7 @@
 #!/bin/python3
-"""Main script which trains a simulated distributed model given some argument options."""
+
+"""Main script which simulates distributed learning given some command line options."""
+
 import torch
 import pandas as pd
 from torch import nn
@@ -26,7 +28,7 @@ if __name__ == '__main__':
     else:
         opt.iid = True
 
-    # optional csv output
+    # optional csv output -> give output fname as string 
     if opt.csv:
         opt.csv = open_csv(opt.csv,
             header='topo,nodes,lr,batch_size,mixing_steps,local_steps,loss,comms')
@@ -44,10 +46,6 @@ if __name__ == '__main__':
 
     x_train, y_train = get_data(opt.num_samples)
 
-    # plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train)
-    # plt.show()
-    # exit(0)
-
     data = (x_train, y_train)
 
     model_kwargs = {"input_dim" : x_train.shape[1], "output_dim": y_train.shape[1]}
@@ -60,7 +58,7 @@ if __name__ == '__main__':
 
     graph_1 = graph(data, W_matrix, iid=opt.iid, **graph_kwargs)
 
-    # calculate a fair learning-rate from the topology, data and number of nodes
+    # calculate learning rate based on spectral properties of W 
     if opt.lr is None or opt.lr.lower() == "none":
         Lh = max([n.lipschitz for n in graph_1.nodes])
         Lf = np.mean([n.lipschitz for n in graph_1.nodes])

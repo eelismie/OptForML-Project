@@ -1,4 +1,4 @@
-"""Contains method to generate different topology matrices."""
+"""Contains method to generate different weight matrices."""
 import numpy as np
 import networkx as nx
 
